@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Meeting Notes Analyzer</title>
+    <style>
+        /* ==========================================
+           GLOBAL STYLES & RESET
+           ========================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        /* ==========================================
+           CONTAINER & LAYOUT
+           ========================================== */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        /* ==========================================
+           HEADER SECTION
+           ========================================== */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+
+            margin-bottom: 10px;
+
+            background: linear-gradient(360deg, #66d0eafb, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-logo {
+            width: 150px;
+            height: 150px;
+            border-radius: 70px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        /* ==========================================
+           FORM SECTION
+           ========================================== */
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        /* Meeting title input field */
+        .form-section input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-section input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Meeting notes textarea */
+        .form-section textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        .form-section textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* ==========================================
+           BUTTON STYLES
+           ========================================== */
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Disabled button state */
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ==========================================
+           LOADING SPINNER
+           ========================================== */
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ==========================================
+           RESULTS SECTION
+           ========================================== */
+        .results {
+            display: none;
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .results h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        /* Summary card */
+        .summary-card {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .summary-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+
+        .summary-card p {
+            color: #555;
+            line-height: 1.6;
+            font-size: 1.05rem;
+        }
+
+        /* Individual result sections */
+        .result-section {
+            margin-bottom: 30px;
+        }
+
+        .result-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+
+        /* Action items list */
+        .action-item {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: border-color 0.3s;
+        }
+
+        .action-item:hover {
+            border-color: #667eea;
+        }
+
+        .action-item .task {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.05rem;
+        }
+
+        .action-item .meta {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .action-item .meta span {
+            margin-right: 15px;
+        }
+
+        /* Decisions and key points lists */
+        .list-item {
+            background: #f8f9ff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        /* Empty state message */
+        .empty-state {
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* ==========================================
+           ERROR MESSAGE
+           ========================================== */
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #c33;
+            display: none;
+        }
+
+        /* ==========================================
+           RESPONSIVE DESIGN
+           ========================================== */
+        @media (max-width: 768px) {
+            .container {
+                padding: 24px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .btn {
+                padding: 12px 24px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ==========================================
+         MAIN CONTAINER
+         ========================================== -->
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <img src="./assets/ai_dashboard_logo.png" alt="robot" class="title-logo" width="100px" height="100px">
+            <h1>AI Meeting Notes Analyzer</h1>
+            <p>Transform messy meeting notes into organized action items</p>
+        </div>
+
+
+
+        <!-- Input Form -->
+        <form id="meetingForm">
+            <!-- Meeting Title Input -->
+            <div class="form-section">
+                <label for="title">Meeting Title</label>
+                <input type="text" id="title" name="title" placeholder="e.g., Q1 Planning Meeting" required>
+            </div>
+
+            <!-- Meeting Notes Textarea -->
+            <div class="form-section">
+                <label for="notes">Meeting Notes</label>
+                <textarea id="notes" name="notes"
+                    placeholder="Paste your meeting notes here...&#10;&#10;Example:&#10;Discussed Q1 roadmap. Sarah will create wireframes by Friday. Team decided to use React for frontend. Mike mentioned we need to hire 2 engineers. Action: John schedules interviews next week."
+                    required></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn" id="analyzeBtn">
+                Analyze Meeting Notes
+            </button>
+        </form>
+
+        <!-- Loading Spinner -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #667eea; font-weight: 600;">
+                AI is analyzing your notes...
+            </p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error" id="error"></div>
+
+        <!-- Results Section -->
+        <div class="results" id="results">
+            <h2>📊 Analysis Results</h2>
+
+            <!-- Summary -->
+            <div class="summary-card">
+                <h3>Summary</h3>
+                <p id="summary"></p>
+            </div>
+
+            <!-- Action Items -->
+            <div class="result-section">
+                <h3>✅ Action Items</h3>
+                <div id="actionItems"></div>
+            </div>
+
+            <!-- Decisions -->
+            <div class="result-section">
+                <h3>🎯 Decisions Made</h3>
+                <div id="decisions"></div>
+            </div>
+
+            <!-- Key Points -->
+            <div class="result-section">
+                <h3>💡 Key Discussion Points</h3>
+                <div id="keyPoints"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         JAVASCRIPT - APPLICATION LOGIC
+         ========================================== -->
+    <script>
+        // ==========================================
+        // CONFIGURATION
+        // ==========================================
+        // API endpoint - change this when deploying to production
+        const API_URL = 'http://localhost:8000/api/meetings';
+
+        // ==========================================
+        // DOM ELEMENT REFERENCES
+        // ==========================================
+        const form = document.getElementById('meetingForm');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+
+        // ==========================================
+        // FORM SUBMISSION HANDLER
+        // ==========================================
+        form.addEventListener('submit', async (e) => {
+            // Prevent default form submission (page reload)
+            e.preventDefault();
+
+            // Get form values
+            const title = document.getElementById('title').value;
+            const notes = document.getElementById('notes').value;
+
+            // Validate inputs
+            if (!title.trim() || !notes.trim()) {
+                showError('Please fill in both meeting title and notes');
+                return;
+            }
+
+            // Show loading state
+            showLoading();
+
+            try {
+                // Send POST request to backend API
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        raw_notes: notes
+                    })
+                });
+
+                // Check if request was successful
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                // Parse JSON response
+                const data = await response.json();
+
+                // Fetch the full meeting details using the meeting ID
+                const detailsResponse = await fetch(`http://localhost:8000/api/meetings/${data.meeting_id}`);
+
+                if (!detailsResponse.ok) {
+                    throw new Error('Failed to fetch meeting details');
+                }
+
+                const meetingDetails = await detailsResponse.json();
+
+                // Display results
+                displayResults(meetingDetails);
+
+            } catch (err) {
+                // Handle errors
+                console.error('Error:', err);
+                showError('Failed to analyze meeting notes. Please try again.');
+            } finally {
+                // Hide loading state
+                hideLoading();
+            }
+        });
+
+        // ==========================================
+        // DISPLAY FUNCTIONS
+        // ==========================================
+
+        /**
+         * Display the analysis results on the page
+         * @param {Object} data - The meeting data from the API
+         */
+        function displayResults(data) {
+            // Hide error if showing
+            error.style.display = 'none';
+
+            // Display summary
+            document.getElementById('summary').textContent = data.summary || 'No summary available';
+
+            // Display action items
+            const actionItemsContainer = document.getElementById('actionItems');
+            actionItemsContainer.innerHTML = '';
+
+            if (data.action_items && data.action_items.length > 0) {
+                data.action_items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'action-item';
+                    div.innerHTML = `
+                        <div class="task">${item.task}</div>
+                        <div class="meta">
+                            ${item.assigned_to ? `<span>👤 ${item.assigned_to}</span>` : ''}
+                            ${item.deadline ? `<span>📅 ${item.deadline}</span>` : ''}
+                        </div>
+                    `;
+                    actionItemsContainer.appendChild(div);
+                });
+            } else {
+                actionItemsContainer.innerHTML = '<div class="empty-state">No action items found</div>';
+            }
+
+            // Display decisions
+            const decisionsContainer = document.getElementById('decisions');
+            decisionsContainer.innerHTML = '';
+
+            if (data.decisions && data.decisions.length > 0) {
+                data.decisions.forEach(decision => {
+                    const div = document.createElement('div');
+                    div.className = 'list-item';
+                    div.textContent = decision;
+                    decisionsContainer.appendChild(div);
+                });
+            } else {
+                decisionsContainer.innerHTML = '<div class="empty-state">No decisions recorded</div>';
+            }
+
+            // Display key points
+            const keyPointsContainer = document.getElementById('keyPoints');
+            keyPointsContainer.innerHTML = '';
+
+            if (data.key_points && data.key_points.length > 0) {
+                data.key_points.forEach(point => {
+                    const div = document.createElement('div');
+                    div.className = 'list-item';
+                    div.textContent = point;
+                    keyPointsContainer.appendChild(div);
+                });
+            } else {
+                keyPointsContainer.innerHTML = '<div class="empty-state">No key points identified</div>';
+            }
+
+            // Show results section
+            results.style.display = 'block';
+
+            // Smooth scroll to results
+            results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        /**
+         * Show loading spinner and disable form
+         */
+        function showLoading() {
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            error.style.display = 'none';
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analyzing...';
+        }
+
+        /**
+         * Hide loading spinner and enable form
+         */
+        function hideLoading() {
+            loading.style.display = 'none';
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = 'Analyze Meeting Notes';
+        }
+
+        /**
+         * Display error message to user
+         * @param {string} message - The error message to display
+         */
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+            results.style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>
